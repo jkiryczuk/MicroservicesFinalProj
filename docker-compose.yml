@@ -1,0 +1,114 @@
+version: '3.4'
+
+services:
+  rabbitmq:
+    image: "rabbitmq:management"
+    ports:
+      - '15672:15672'
+      - '5672:5672'
+
+  email_service:
+    build: ./emails
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./emails:/usr/src/app
+  
+  user_service:
+    build: ./users
+    ports:
+      - "8082:8082"
+    depends_on:
+      - user_db
+      - email_service
+    links:
+      - user_db
+      - email_service
+    environment:
+      - EMAIL_SERVICE_HOST=email_service,
+      - USERS_DB_HOST=user_db,
+      - MYSQL_DATABASE='users'
+      - MYSQL_USER='user'
+      - MYSQL_PASSWORD='password'
+      - MYSQL_ROOT_PASSWORD='password'
+    volumes:
+      - ./users:/usr/src/app
+  
+  product_service:
+    build: ./products
+    ports:
+      - "8081:8081"
+    depends_on:
+      - product_db
+    links:
+      - product_db
+    environment:
+      - PRODUCTS_DB_HOST=product_db,
+      - MYSQL_DATABASE='products'
+      - MYSQL_USER='user'
+      - MYSQL_PASSWORD='password'
+      - MYSQL_ROOT_PASSWORD='password'
+    volumes:
+      - ./products:/usr/src/app
+
+  order_service:
+    build: ./orders
+    ports:
+      - "8084:8084"
+    depends_on:
+      - order_db
+      - product_service
+    links:
+      - order_db
+      - product_service
+    environment:
+      - PROCUCT_SERVICE_HOST=product_service,
+      - ORDERS_DB_HOST=order_db,
+      - MYSQL_DATABASE='orders'
+      - MYSQL_USER='user'
+      - MYSQL_PASSWORD='password'
+      - MYSQL_ROOT_PASSWORD='password'
+    volumes:
+      - ./orders:/usr/src/app
+
+  user_db:
+    build: ./db/users
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      # <Port exposed> : < MySQL Port running inside container>
+      # Just for debugging
+      - '3310:3306'
+      # Where our data will be persisted
+    volumes:
+      - users-db:/var/lib/mysql
+
+  product_db:
+    build: ./db/products
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      # <Port exposed> : < MySQL Port running inside container>
+      # Just for debugging
+      - '3311:3306'
+      # Where our data will be persisted
+    volumes:
+      - products-db:/var/lib/mysql
+
+  order_db:
+    build: ./db/orders
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      # <Port exposed> : < MySQL Port running inside container>
+      # Just for debugging
+      - '3312:3306'
+      # Where our data will be persisted
+    volumes:
+      - orders-db:/var/lib/mysql
+
+# Names our volume
+volumes:
+  users-db:
+  products-db:
+  orders-db:

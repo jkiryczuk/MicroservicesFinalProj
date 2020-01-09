@@ -1,0 +1,26 @@
+{
+  "name": "users",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "author": "Lukasz Chomatek",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.5.5",
+    "body-parser": "^1.19.0",
+    "bookshelf": "^1.0.1",
+    "express": "^4.17.1",
+    "knex": "^0.20.1",
+    "mysql": "^2.17.1",
+    "request": "^2.88.0",
+    "underscore": "^1.9.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.3"
+  }
+}
