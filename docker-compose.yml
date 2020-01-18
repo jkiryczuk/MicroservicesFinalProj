@@ -1,11 +1,65 @@
 version: '3.4'
 
 services:
-  rabbitmq:
-    image: "rabbitmq:management"
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data
     ports:
-      - '15672:15672'
-      - '5672:5672'
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_PASSWORD: changeme
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./logstash/config/logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: true
+      - type: bind
+        source: ./logstash/pipeline
+        target: /usr/share/logstash/pipeline
+        read_only: true
+    ports:
+      - "5000:5000"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
 
   email_service:
     build: ./emails
@@ -13,24 +67,37 @@ services:
       - "8083:8083"
     volumes:
       - ./emails:/usr/src/app
-  
+    environment:
+      - RABBIT_SERVICE_HOST=rabbit
+      - LOGSTASH_URL=logstash
+      - LOGSTASH_PORT=5000
+      - LOGSTASH_NODE_NAME=email-service
+    depends_on:
+      - rabbit
+      
+  user_service:
   user_service:
     build: ./users
-    ports:
-      - "8082:8082"
     depends_on:
       - user_db
       - email_service
+      - rabbit
+    ports:
+      - "8082:8082"
     links:
       - user_db
       - email_service
     environment:
-      - EMAIL_SERVICE_HOST=email_service,
+      - RABBIT_SERVICE_HOST=rabbit
+      - EMAIL_SERVICE_HOST=email_service
       - USERS_DB_HOST=user_db,
       - MYSQL_DATABASE='users'
       - MYSQL_USER='user'
       - MYSQL_PASSWORD='password'
       - MYSQL_ROOT_PASSWORD='password'
+      - LOGSTASH_URL=logstash
+      - LOGSTASH_PORT=5000
+      - LOGSTASH_NODE_NAME=user-service
     volumes:
       - ./users:/usr/src/app
   
@@ -43,11 +110,14 @@ services:
     links:
       - product_db
     environment:
-      - PRODUCTS_DB_HOST=product_db,
+      - PRODUCTS_DB_HOST=product_db
       - MYSQL_DATABASE='products'
       - MYSQL_USER='user'
       - MYSQL_PASSWORD='password'
       - MYSQL_ROOT_PASSWORD='password'
+      - LOGSTASH_URL=logstash
+      - LOGSTASH_PORT=5000
+      - LOGSTASH_NODE_NAME=product-service
     volumes:
       - ./products:/usr/src/app
 
@@ -62,12 +132,15 @@ services:
       - order_db
       - product_service
     environment:
-      - PROCUCT_SERVICE_HOST=product_service,
+      - PROCUCT_SERVICE_HOST=product_service
       - ORDERS_DB_HOST=order_db,
       - MYSQL_DATABASE='orders'
       - MYSQL_USER='user'
       - MYSQL_PASSWORD='password'
       - MYSQL_ROOT_PASSWORD='password'
+      - LOGSTASH_URL=logstash
+      - LOGSTASH_PORT=5000
+      - LOGSTASH_NODE_NAME=order-service
     volumes:
       - ./orders:/usr/src/app
 
@@ -106,9 +179,15 @@ services:
       # Where our data will be persisted
     volumes:
       - orders-db:/var/lib/mysql
-
+  
+  rabbit:
+    image: rabbitmq:management
+    ports:
+      - "15672:15672"
+      - "5672:5672"
 # Names our volume
 volumes:
   users-db:
   products-db:
   orders-db:
+  elasticsearch:

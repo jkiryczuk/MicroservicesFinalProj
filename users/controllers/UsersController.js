@@ -2,11 +2,17 @@ const User = require('../models/user');
 const _ = require('underscore');
 const Request = require("request");
 var amqp = require('amqplib/callback_api');
+var winston = require('winston');
+require('winston-logstash');
+
+    
 
 exports.getAll = (req, res) => {
     User.getAll().then(
         function (allUsers) {
-            console.log(allUsers);
+            // console.log(allUsers);
+            // winston.log('error', 'hello', { message: 'world' });
+            winston.info('getAll', { message: "completed without errors" });
             res.json(allUsers);
         }
     );
@@ -31,7 +37,7 @@ exports.store = (req, res) => {
         'birthdate': new Date(req.body.birthdate),
         'gender': req.body.gender
     }).then(function (data) {
-        amqp.connect('amqp://rabbitmq', function (error0, connection) {
+        amqp.connect('amqp://rabbit', function (error0, connection) {
             if (error0) {
                 throw error0;
             }

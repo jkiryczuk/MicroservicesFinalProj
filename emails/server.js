@@ -1,5 +1,7 @@
 const app = require('./app');
 const emailscontroller = require('./controllers/EmailsController');
+const winston = require('winston');
+require('winston-logstash');
 
 
 app.set('port', process.env.PORT || 8083);
@@ -8,7 +10,7 @@ var amqp = require('amqplib/callback_api');
 
 function listen() {
 
-    amqp.connect('amqp://rabbitmq', function (error0, connection) {
+    amqp.connect('amqp://rabbit', function (error0, connection) {
         if (error0) {
             throw error0;
         }
@@ -42,9 +44,15 @@ function listen() {
         });
     });
 }
-setTimeout(listen, 30000)
+setTimeout(listen, 90000)
 
 const server = app.listen(app.get('port'), () => {
     console.log(`email service is listening on
     ${server.address().port}`);
 });
+
+winston.add(winston.transports.Logstash,
+    {
+        port: process.env.LOGSTASH_PORT,
+        host: process.env.LOGSTASH_URL,
+    });
