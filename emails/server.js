@@ -6,6 +6,13 @@ require('winston-logstash');
 
 app.set('port', process.env.PORT || 8083);
 
+winston.add(winston.transports.Logstash,
+    {
+        port: process.env.LOGSTASH_PORT,
+        host: process.env.LOGSTASH_URL,
+        node_name: process.env.LOGSTASH_NODE_NAME,
+    });
+
 var amqp = require('amqplib/callback_api');
 
 function listen() {
@@ -51,8 +58,3 @@ const server = app.listen(app.get('port'), () => {
     ${server.address().port}`);
 });
 
-winston.add(winston.transports.Logstash,
-    {
-        port: process.env.LOGSTASH_PORT,
-        host: process.env.LOGSTASH_URL,
-    });

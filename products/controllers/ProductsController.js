@@ -1,11 +1,15 @@
 const products = require('../data/ProductData');
 const Product = require('../models/product');
 const _ = require('underscore');
+const winston = require('winston');
+require('winston-logstash');
+
 
 exports.getAll = (req, res) => {
     Product.getAll().then(
         function(allProducts) {
             console.log(allProducts);
+            winston.log('debug', 'getAll', { message: 'sucess getting products' });
             res.json(allProducts);
         }
     );
@@ -40,6 +44,7 @@ exports.store = (req, res) => {
             'status':'saved!',
             'product': newProduct,
         });
+        winston.log('info', 'store_function', { message: 'success' });
     });
 
 

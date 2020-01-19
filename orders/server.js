@@ -15,4 +15,5 @@ winston.add(winston.transports.Logstash,
     {
         port: process.env.LOGSTASH_PORT,
         host: process.env.LOGSTASH_URL,
+        node_name: process.env.LOGSTASH_NODE_NAME,
     });

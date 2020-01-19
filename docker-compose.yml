@@ -1,6 +1,12 @@
 version: '3.4'
 
-services:
+services:   
+  rabbit:
+    image: rabbitmq:management
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+      
   elasticsearch:
     build:
       context: elasticsearch/
@@ -20,8 +26,6 @@ services:
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
       ELASTIC_PASSWORD: changeme
-      # Use single node discovery in order to disable production mode and avoid bootstrap checks
-      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
       discovery.type: single-node
 
   logstash:
@@ -149,10 +153,7 @@ services:
     restart: always
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      # <Port exposed> : < MySQL Port running inside container>
-      # Just for debugging
       - '3310:3306'
-      # Where our data will be persisted
     volumes:
       - users-db:/var/lib/mysql
 
@@ -161,10 +162,7 @@ services:
     restart: always
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      # <Port exposed> : < MySQL Port running inside container>
-      # Just for debugging
       - '3311:3306'
-      # Where our data will be persisted
     volumes:
       - products-db:/var/lib/mysql
 
@@ -173,19 +171,10 @@ services:
     restart: always
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      # <Port exposed> : < MySQL Port running inside container>
-      # Just for debugging
       - '3312:3306'
-      # Where our data will be persisted
     volumes:
       - orders-db:/var/lib/mysql
-  
-  rabbit:
-    image: rabbitmq:management
-    ports:
-      - "15672:15672"
-      - "5672:5672"
-# Names our volume
+
 volumes:
   users-db:
   products-db:

@@ -5,7 +5,7 @@ var amqp = require('amqplib/callback_api');
 var winston = require('winston');
 require('winston-logstash');
 
-    
+
 
 exports.getAll = (req, res) => {
     User.getAll().then(
@@ -39,10 +39,12 @@ exports.store = (req, res) => {
     }).then(function (data) {
         amqp.connect('amqp://rabbit', function (error0, connection) {
             if (error0) {
+                winston.log('error', 'store_function', { message: 'thrown error0' });
                 throw error0;
             }
             connection.createChannel(function (error1, channel) {
                 if (error1) {
+                    winston.log('error', 'store_function', { message: 'thrown error1' });
                     throw error1;
                 }
                 var exchange = 'emails';
@@ -54,14 +56,16 @@ exports.store = (req, res) => {
                     durable: false
                 });
                 channel.publish(exchange, '', Buffer.from(msg));
-                console.log(" [x] Sent %s", msg);
+                winston.log('info', 'store_function', { message: 'succesfully sent message' });
+                // console.log(" [x] Sent %s", msg);
             });
             setTimeout(function () {
                 connection.close();
+                winston.log('debug', 'store_function', { message: 'closed connection' });
             }, 5000);
         });
         res.json({
-            'status':'delivered',
+            'status': 'delivered',
             'user': req.body.email,
         });
     });

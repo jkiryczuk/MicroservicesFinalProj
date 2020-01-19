@@ -12,7 +12,6 @@ winston.add(winston.transports.Logstash,
         node_name: process.env.LOGSTASH_NODE_NAME,
     });
     
-winston.log("This is a standard log message");
 
 const server = app.listen(app.get('port'), () => {
     console.log(`User service is listening on
